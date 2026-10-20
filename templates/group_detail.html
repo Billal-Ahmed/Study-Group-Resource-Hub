@@ -1,0 +1,219 @@
+{% extends "layout.html" %}
+{% block title %}{{ group.name }} — Study Hub{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="group-detail-header mb-4 p-4 rounded-3 d-flex flex-wrap align-items-start justify-content-between gap-3">
+  <div>
+    {% if group.course_code %}
+      <span class="badge course-badge mb-2">{{ group.course_code }}</span>
+    {% endif %}
+    <h1 class="h3 fw-bold mb-1">{{ group.name }}</h1>
+    <p class="mb-0 text-muted">{{ group.description or 'No description provided.' }}</p>
+  </div>
+  {% if is_member %}
+    <form method="post" action="{{ url_for('leave_group', group_id=group.id) }}">
+      <button type="submit" class="btn btn-outline-danger btn-sm" id="leave-btn"
+              data-confirm="Are you sure you want to leave this group?">
+        <i class="bi bi-box-arrow-left me-1"></i>Leave Group
+      </button>
+    </form>
+  {% else %}
+    <form method="post" action="{{ url_for('join_group', group_id=group.id) }}">
+      <button type="submit" class="btn btn-primary btn-sm">
+        <i class="bi bi-person-plus me-1"></i>Join Group
+      </button>
+    </form>
+  {% endif %}
+</div>
+
+<div class="row g-4">
+  <!-- Left column: Resources & Deadlines -->
+  <div class="col-lg-8">
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs mb-4" id="groupTabs" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="resources-tab" data-bs-toggle="tab"
+                data-bs-target="#resources" type="button" role="tab">
+          <i class="bi bi-folder2-open me-1"></i>Resources
+          <span class="badge bg-secondary ms-1">{{ resources|length }}</span>
+        </button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="deadlines-tab" data-bs-toggle="tab"
+                data-bs-target="#deadlines-pane" type="button" role="tab">
+          <i class="bi bi-calendar3 me-1"></i>Deadlines
+          <span class="badge bg-danger ms-1">{{ deadlines|length }}</span>
+        </button>
+      </li>
+    </ul>
+
+    <div class="tab-content">
+      <!-- Resources Tab -->
+      <div class="tab-pane fade show active" id="resources" role="tabpanel">
+        {% if is_member %}
+          <div class="card mb-4">
+            <div class="card-header fw-semibold bg-transparent">
+              <i class="bi bi-plus-square me-1"></i>Share a Resource
+            </div>
+            <div class="card-body">
+              <form id="resource-form" method="post"
+                    action="{{ url_for('add_resource', group_id=group.id) }}" novalidate>
+                <div class="row g-2">
+                  <div class="col-sm-7">
+                    <input type="text" class="form-control form-control-sm" name="title"
+                           placeholder="Title / label" required>
+                  </div>
+                  <div class="col-sm-5">
+                    <select class="form-select form-select-sm" name="resource_type" id="resource-type-sel" required>
+                      <option value="link">🔗 Link</option>
+                      <option value="note">📝 Note</option>
+                    </select>
+                  </div>
+                  <div class="col-12">
+                    <textarea class="form-control form-control-sm" name="link_or_note"
+                              id="link-or-note-input" rows="2"
+                              placeholder="Paste a URL or write a note…" required></textarea>
+                    <div class="invalid-feedback">This field is required.</div>
+                  </div>
+                  <div class="col-12 text-end">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                      <i class="bi bi-send me-1"></i>Post
+                    </button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if resources %}
+          <div class="resource-list">
+            {% for r in resources %}
+              <div class="card resource-card mb-2">
+                <div class="card-body py-2 px-3 d-flex align-items-start gap-3">
+                  <span class="resource-type-icon flex-shrink-0">
+                    {{ '🔗' if r.resource_type == 'link' else '📝' }}
+                  </span>
+                  <div class="flex-grow-1 overflow-hidden">
+                    <div class="fw-semibold small">{{ r.title }}</div>
+                    {% if r.resource_type == 'link' %}
+                      <a href="{{ r.link_or_note }}" target="_blank" rel="noopener"
+                         class="text-break small text-primary">{{ r.link_or_note }}</a>
+                    {% else %}
+                      <p class="mb-0 text-muted small text-break">{{ r.link_or_note }}</p>
+                    {% endif %}
+                  </div>
+                  <div class="text-end flex-shrink-0">
+                    <div class="text-muted" style="font-size:.75rem">{{ r.posted_by }}</div>
+                    <div class="text-muted" style="font-size:.72rem">{{ r.created_at[:10] }}</div>
+                  </div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state text-center py-4">
+            <i class="bi bi-folder2-open display-5 text-muted"></i>
+            <p class="mt-2 text-muted small">No resources yet. Be the first to share!</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Deadlines Tab -->
+      <div class="tab-pane fade" id="deadlines-pane" role="tabpanel">
+        {% if is_member %}
+          <div class="card mb-4">
+            <div class="card-header fw-semibold bg-transparent">
+              <i class="bi bi-calendar-plus me-1"></i>Add a Deadline
+            </div>
+            <div class="card-body">
+              <form id="deadline-form" method="post"
+                    action="{{ url_for('add_deadline', group_id=group.id) }}" novalidate>
+                <div class="row g-2 align-items-end">
+                  <div class="col-sm-6">
+                    <label class="form-label form-label-sm mb-1">Title</label>
+                    <input type="text" class="form-control form-control-sm" name="title"
+                           placeholder="e.g. Problem Set 3" required>
+                    <div class="invalid-feedback">Title is required.</div>
+                  </div>
+                  <div class="col-sm-4">
+                    <label class="form-label form-label-sm mb-1">Due Date</label>
+                    <input type="date" class="form-control form-control-sm" name="due_date" required>
+                    <div class="invalid-feedback">Date is required.</div>
+                  </div>
+                  <div class="col-sm-2 text-end">
+                    <button type="submit" class="btn btn-danger btn-sm w-100">Add</button>
+                  </div>
+                </div>
+              </form>
+            </div>
+          </div>
+        {% endif %}
+
+        {% if deadlines %}
+          <ul class="list-group list-group-flush deadline-list">
+            {% for d in deadlines %}
+              <li class="list-group-item px-0 py-3 d-flex align-items-center gap-3">
+                <span class="deadline-badge flex-shrink-0">{{ d.due_date[5:] }}</span>
+                <div class="flex-grow-1">
+                  <div class="fw-semibold small">{{ d.title }}</div>
+                  <div class="text-muted" style="font-size:.76rem">
+                    Added by {{ d.added_by }} &bull; {{ d.due_date }}
+                  </div>
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <div class="empty-state text-center py-4">
+            <i class="bi bi-calendar-x display-5 text-muted"></i>
+            <p class="mt-2 text-muted small">No deadlines yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right column: Members -->
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header fw-semibold bg-transparent">
+        <i class="bi bi-people-fill me-1 text-primary"></i>Members
+        <span class="badge bg-secondary ms-1">{{ members|length }}</span>
+      </div>
+      <ul class="list-group list-group-flush">
+        {% for m in members %}
+          <li class="list-group-item py-2 small">
+            <i class="bi bi-person-circle me-2 text-muted"></i>
+            <strong>{{ m.username }}</strong>
+            {% if m.username == members[0].username %}
+              <span class="badge bg-warning text-dark ms-1" style="font-size:.65rem">Owner</span>
+            {% endif %}
+            <div class="text-muted" style="font-size:.72rem; margin-left:1.5rem">
+              Joined {{ m.joined_at[:10] if m.joined_at else '' }}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Confirmation Modal (shared, JS populates content) -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <div class="modal-content">
+      <div class="modal-body text-center pt-4">
+        <i class="bi bi-exclamation-triangle-fill text-warning display-5"></i>
+        <p class="mt-3 fw-semibold" id="confirmModalLabel"></p>
+      </div>
+      <div class="modal-footer border-0 justify-content-center pt-0 pb-3">
+        <button type="button" class="btn btn-light btn-sm" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-danger btn-sm" id="confirm-action-btn">Yes, proceed</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

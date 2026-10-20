@@ -1,0 +1,121 @@
+{% extends "layout.html" %}
+{% block title %}Explore Groups — Study Hub{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
+  <div>
+    <h1 class="h3 fw-bold mb-0">Study Groups</h1>
+    <p class="text-muted mb-0 small">Find a group or start your own</p>
+  </div>
+  <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+    <i class="bi bi-plus-circle me-1"></i>New Group
+  </button>
+</div>
+
+<!-- Search bar -->
+<form method="get" action="{{ url_for('groups') }}" class="mb-4">
+  <div class="input-group" style="max-width:420px;">
+    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+    <input type="text" class="form-control border-start-0 ps-0"
+           name="q" value="{{ query }}" placeholder="Search by name or course code…">
+    <button class="btn btn-outline-secondary" type="submit">Search</button>
+    {% if query %}
+      <a href="{{ url_for('groups') }}" class="btn btn-outline-danger" title="Clear search">
+        <i class="bi bi-x"></i>
+      </a>
+    {% endif %}
+  </div>
+</form>
+
+{% if query %}
+  <p class="text-muted small mb-3">
+    Results for "<strong>{{ query }}</strong>" — {{ all_groups|length }} found
+  </p>
+{% endif %}
+
+{% if all_groups %}
+  <div class="row g-3">
+    {% for group in all_groups %}
+      <div class="col-sm-6 col-lg-4">
+        <div class="card group-card h-100">
+          <div class="card-body">
+            {% if group.course_code %}
+              <span class="badge course-badge mb-2">{{ group.course_code }}</span>
+            {% endif %}
+            <h2 class="card-title h6 fw-bold mb-1">{{ group.name }}</h2>
+            <p class="card-text text-muted small mb-3">
+              {{ group.description[:90] ~ '…' if group.description and group.description|length > 90 else group.description or 'No description.' }}
+            </p>
+            <div class="d-flex align-items-center gap-2 small text-muted mb-3">
+              <i class="bi bi-person-fill"></i> {{ group.creator }}
+              <span class="ms-auto"><i class="bi bi-people me-1"></i>{{ group.member_count }}</span>
+            </div>
+            <div class="d-flex gap-2">
+              <a href="{{ url_for('group_detail', group_id=group.id) }}"
+                 class="btn btn-outline-primary btn-sm flex-grow-1">View</a>
+              {% if group.id not in joined_ids %}
+                <form method="post" action="{{ url_for('join_group', group_id=group.id) }}">
+                  <button type="submit" class="btn btn-primary btn-sm">Join</button>
+                </form>
+              {% else %}
+                <span class="btn btn-success btn-sm disabled pe-none">
+                  <i class="bi bi-check2"></i> Joined
+                </span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state text-center py-5">
+    <i class="bi bi-search display-4 text-muted"></i>
+    <p class="mt-3 text-muted">No groups found{% if query %} for "{{ query }}"{% endif %}.</p>
+    <button class="btn btn-primary btn-sm mt-1" data-bs-toggle="modal" data-bs-target="#createGroupModal">
+      Create One
+    </button>
+  </div>
+{% endif %}
+
+
+<!-- Create Group Modal -->
+<div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-0 pb-0">
+        <h2 class="modal-title h5 fw-bold" id="createGroupModalLabel">
+          <i class="bi bi-plus-circle me-2 text-primary"></i>Create a New Group
+        </h2>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="create-group-form" method="post" action="{{ url_for('groups') }}" novalidate>
+        <div class="modal-body pt-2">
+          <div class="mb-3">
+            <label for="g-name" class="form-label fw-medium">Group Name <span class="text-danger">*</span></label>
+            <input type="text" class="form-control" id="g-name" name="name"
+                   placeholder="e.g. CS50 Study Squad" required maxlength="100">
+            <div class="invalid-feedback">Group name is required.</div>
+          </div>
+          <div class="mb-3">
+            <label for="g-course" class="form-label fw-medium">Course Code</label>
+            <input type="text" class="form-control" id="g-course" name="course_code"
+                   placeholder="e.g. CS50, MATH101" maxlength="20">
+          </div>
+          <div class="mb-3">
+            <label for="g-desc" class="form-label fw-medium">Description</label>
+            <textarea class="form-control" id="g-desc" name="description"
+                      rows="3" placeholder="What is this group about?" maxlength="300"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+          <button type="submit" class="btn btn-primary fw-semibold">
+            <i class="bi bi-plus me-1"></i>Create Group
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
